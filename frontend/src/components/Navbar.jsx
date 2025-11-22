@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { LogOut, User, LayoutDashboard, BedDouble, Users, CalendarCheck } from 'lucide-react';
+import { LogOut, User, LayoutDashboard, BedDouble, Users, CalendarCheck, CreditCard } from 'lucide-react';
 import { AuthService } from '../services/api';
 
 const Navbar = () => {
@@ -34,6 +34,9 @@ const Navbar = () => {
                             </Link>
                             <Link to="/bookings" className="hover:text-indigo-200 flex items-center gap-1">
                                 <CalendarCheck size={18} /> Bookings
+                            </Link>
+                            <Link to="/payments" className="hover:text-indigo-200 flex items-center gap-1">
+                                <CreditCard size={18} /> Payments
                             </Link>
                         </div>
                     </div>
