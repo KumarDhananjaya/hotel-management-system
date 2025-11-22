@@ -609,8 +609,3 @@ The Hotel Management System project has been a comprehensive learning experience
 The project is well-positioned for the final semester presentation and can serve as a strong portfolio piece demonstrating real-world software engineering skills.
 
 ---
-
-**Report Prepared By:** Pooja Malakappa Nuchchi  
-**Date:** November 22, 2025  
-**Project Repository:** [GitHub Link - if applicable]  
-**Live Demo:** [URL - if deployed]
