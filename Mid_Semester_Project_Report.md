@@ -1,10 +1,6 @@
-# Mid-Semester Project Report
+# Project Report
 
 ## Hotel Booking and Management System Prototype
-
-**Student Name:** Pooja Malakappa Nuchchi  
-**Project Name:** Hotel Management System (HMSP)  
-**Report Date:** November 22, 2025
 
 ---
 
