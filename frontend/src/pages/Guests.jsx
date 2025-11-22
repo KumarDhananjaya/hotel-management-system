@@ -1,25 +1,60 @@
 import React, { useEffect, useState } from 'react';
 import { GuestService } from '../services/api';
-import { Plus, Search, Phone, Mail, MapPin } from 'lucide-react';
+import { Plus, Search, Phone, Mail, MapPin, X } from 'lucide-react';
 
 const Guests = () => {
     const [guests, setGuests] = useState([]);
     const [loading, setLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState('');
+    const [showModal, setShowModal] = useState(false);
+    const [formData, setFormData] = useState({
+        name: '',
+        phone: '',
+        email: '',
+        address: ''
+    });
 
     useEffect(() => {
-        const fetchGuests = async () => {
-            try {
-                const response = await GuestService.getAllGuests();
-                setGuests(response.data);
-            } catch (error) {
-                console.error('Failed to fetch guests', error);
-            } finally {
-                setLoading(false);
-            }
-        };
         fetchGuests();
     }, []);
+
+    const fetchGuests = async () => {
+        try {
+            const response = await GuestService.getAllGuests();
+            setGuests(response.data);
+        } catch (error) {
+            console.error('Failed to fetch guests', error);
+            alert('Failed to load guests. Please check if you are logged in.');
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const handleSubmit = async (e) => {
+        e.preventDefault();
+        try {
+            await GuestService.addGuest(formData);
+            alert('Guest added successfully!');
+            setShowModal(false);
+            setFormData({
+                name: '',
+                phone: '',
+                email: '',
+                address: ''
+            });
+            fetchGuests();
+        } catch (error) {
+            console.error('Failed to add guest', error);
+            alert('Failed to add guest. Please try again.');
+        }
+    };
+
+    const handleChange = (e) => {
+        setFormData({
+            ...formData,
+            [e.target.name]: e.target.value
+        });
+    };
 
     const filteredGuests = guests.filter(guest =>
         guest.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -33,7 +68,10 @@ const Guests = () => {
         <div>
             <div className="flex justify-between items-center mb-8">
                 <h1 className="text-3xl font-bold text-gray-800">Guests</h1>
-                <button className="bg-indigo-600 text-white px-4 py-2 rounded-lg flex items-center gap-2 hover:bg-indigo-700 transition">
+                <button
+                    onClick={() => setShowModal(true)}
+                    className="bg-indigo-600 text-white px-4 py-2 rounded-lg flex items-center gap-2 hover:bg-indigo-700 transition"
+                >
                     <Plus size={20} /> Add Guest
                 </button>
             </div>
@@ -89,6 +127,90 @@ const Guests = () => {
                     </tbody>
                 </table>
             </div>
+
+            {/* Add Guest Modal */}
+            {showModal && (
+                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+                    <div className="bg-white rounded-lg p-8 max-w-md w-full mx-4">
+                        <div className="flex justify-between items-center mb-6">
+                            <h2 className="text-2xl font-bold text-gray-800">Add New Guest</h2>
+                            <button onClick={() => setShowModal(false)} className="text-gray-500 hover:text-gray-700">
+                                <X size={24} />
+                            </button>
+                        </div>
+
+                        <form onSubmit={handleSubmit} className="space-y-4">
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">Full Name</label>
+                                <input
+                                    type="text"
+                                    name="name"
+                                    value={formData.name}
+                                    onChange={handleChange}
+                                    required
+                                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                                    placeholder="John Doe"
+                                />
+                            </div>
+
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
+                                <input
+                                    type="email"
+                                    name="email"
+                                    value={formData.email}
+                                    onChange={handleChange}
+                                    required
+                                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                                    placeholder="john@example.com"
+                                />
+                            </div>
+
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">Phone</label>
+                                <input
+                                    type="tel"
+                                    name="phone"
+                                    value={formData.phone}
+                                    onChange={handleChange}
+                                    required
+                                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                                    placeholder="+1 234 567 8900"
+                                />
+                            </div>
+
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">Address</label>
+                                <textarea
+                                    name="address"
+                                    value={formData.address}
+                                    onChange={handleChange}
+                                    required
+                                    rows="3"
+                                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                                    placeholder="123 Main St, City, Country"
+                                />
+                            </div>
+
+                            <div className="flex gap-3 pt-4">
+                                <button
+                                    type="submit"
+                                    className="flex-1 bg-indigo-600 text-white py-2 rounded-lg hover:bg-indigo-700 transition font-medium"
+                                >
+                                    Add Guest
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={() => setShowModal(false)}
+                                    className="flex-1 bg-gray-200 text-gray-700 py-2 rounded-lg hover:bg-gray-300 transition font-medium"
+                                >
+                                    Cancel
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            )}
         </div>
     );
 };

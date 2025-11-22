@@ -1,24 +1,101 @@
 import React, { useEffect, useState } from 'react';
-import { BookingService } from '../services/api';
-import { Plus, Calendar, CheckCircle, XCircle, Clock } from 'lucide-react';
+import { BookingService, RoomService, GuestService } from '../services/api';
+import { Plus, Calendar, CheckCircle, XCircle, Clock, X } from 'lucide-react';
 
 const Bookings = () => {
     const [bookings, setBookings] = useState([]);
+    const [rooms, setRooms] = useState([]);
+    const [guests, setGuests] = useState([]);
     const [loading, setLoading] = useState(true);
+    const [showModal, setShowModal] = useState(false);
+    const [formData, setFormData] = useState({
+        roomId: '',
+        guestId: '',
+        checkInDate: '',
+        checkOutDate: '',
+        totalAmount: '',
+        status: 'PENDING'
+    });
 
     useEffect(() => {
-        const fetchBookings = async () => {
-            try {
-                const response = await BookingService.getAllBookings();
-                setBookings(response.data);
-            } catch (error) {
-                console.error('Failed to fetch bookings', error);
-            } finally {
-                setLoading(false);
-            }
-        };
         fetchBookings();
+        fetchRoomsAndGuests();
     }, []);
+
+    const fetchBookings = async () => {
+        try {
+            const response = await BookingService.getAllBookings();
+            setBookings(response.data);
+        } catch (error) {
+            console.error('Failed to fetch bookings', error);
+            alert('Failed to load bookings. Please check if you are logged in.');
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const fetchRoomsAndGuests = async () => {
+        try {
+            const [roomsRes, guestsRes] = await Promise.all([
+                RoomService.getAllRooms(),
+                GuestService.getAllGuests()
+            ]);
+            setRooms(roomsRes.data);
+            setGuests(guestsRes.data);
+        } catch (error) {
+            console.error('Failed to fetch rooms and guests', error);
+        }
+    };
+
+    const handleSubmit = async (e) => {
+        e.preventDefault();
+        try {
+            const bookingData = {
+                room: { id: parseInt(formData.roomId) },
+                guest: { id: parseInt(formData.guestId) },
+                checkInDate: formData.checkInDate,
+                checkOutDate: formData.checkOutDate,
+                totalAmount: parseFloat(formData.totalAmount),
+                status: formData.status
+            };
+
+            await BookingService.createBooking(bookingData);
+            alert('Booking created successfully!');
+            setShowModal(false);
+            setFormData({
+                roomId: '',
+                guestId: '',
+                checkInDate: '',
+                checkOutDate: '',
+                totalAmount: '',
+                status: 'PENDING'
+            });
+            fetchBookings();
+        } catch (error) {
+            console.error('Failed to create booking', error);
+            alert('Failed to create booking. ' + (error.response?.data?.message || 'Please try again.'));
+        }
+    };
+
+    const handleChange = (e) => {
+        setFormData({
+            ...formData,
+            [e.target.name]: e.target.value
+        });
+    };
+
+    const handleCancelBooking = async (id) => {
+        if (window.confirm('Are you sure you want to cancel this booking?')) {
+            try {
+                await BookingService.cancelBooking(id);
+                alert('Booking cancelled successfully!');
+                fetchBookings();
+            } catch (error) {
+                console.error('Failed to cancel booking', error);
+                alert('Failed to cancel booking. Please try again.');
+            }
+        }
+    };
 
     const getStatusColor = (status) => {
         switch (status) {
@@ -35,7 +112,10 @@ const Bookings = () => {
         <div>
             <div className="flex justify-between items-center mb-8">
                 <h1 className="text-3xl font-bold text-gray-800">Bookings</h1>
-                <button className="bg-indigo-600 text-white px-4 py-2 rounded-lg flex items-center gap-2 hover:bg-indigo-700 transition">
+                <button
+                    onClick={() => setShowModal(true)}
+                    className="bg-indigo-600 text-white px-4 py-2 rounded-lg flex items-center gap-2 hover:bg-indigo-700 transition"
+                >
                     <Plus size={20} /> New Booking
                 </button>
             </div>
@@ -83,7 +163,12 @@ const Bookings = () => {
                                 </td>
                                 <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                                     {booking.status !== 'CANCELLED' && (
-                                        <button className="text-red-600 hover:text-red-900">Cancel</button>
+                                        <button
+                                            onClick={() => handleCancelBooking(booking.id)}
+                                            className="text-red-600 hover:text-red-900"
+                                        >
+                                            Cancel
+                                        </button>
                                     )}
                                 </td>
                             </tr>
@@ -91,6 +176,128 @@ const Bookings = () => {
                     </tbody>
                 </table>
             </div>
+
+            {/* New Booking Modal */}
+            {showModal && (
+                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+                    <div className="bg-white rounded-lg p-8 max-w-md w-full mx-4 max-h-[90vh] overflow-y-auto">
+                        <div className="flex justify-between items-center mb-6">
+                            <h2 className="text-2xl font-bold text-gray-800">New Booking</h2>
+                            <button onClick={() => setShowModal(false)} className="text-gray-500 hover:text-gray-700">
+                                <X size={24} />
+                            </button>
+                        </div>
+
+                        <form onSubmit={handleSubmit} className="space-y-4">
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">Select Guest</label>
+                                <select
+                                    name="guestId"
+                                    value={formData.guestId}
+                                    onChange={handleChange}
+                                    required
+                                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                                >
+                                    <option value="">Choose a guest...</option>
+                                    {guests.map(guest => (
+                                        <option key={guest.id} value={guest.id}>
+                                            {guest.name} - {guest.email}
+                                        </option>
+                                    ))}
+                                </select>
+                            </div>
+
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">Select Room</label>
+                                <select
+                                    name="roomId"
+                                    value={formData.roomId}
+                                    onChange={handleChange}
+                                    required
+                                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                                >
+                                    <option value="">Choose a room...</option>
+                                    {rooms.filter(room => room.status === 'AVAILABLE').map(room => (
+                                        <option key={room.id} value={room.id}>
+                                            Room {room.roomNumber} - {room.type} (${room.price}/night)
+                                        </option>
+                                    ))}
+                                </select>
+                            </div>
+
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">Check-in Date</label>
+                                <input
+                                    type="date"
+                                    name="checkInDate"
+                                    value={formData.checkInDate}
+                                    onChange={handleChange}
+                                    required
+                                    min={new Date().toISOString().split('T')[0]}
+                                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                                />
+                            </div>
+
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">Check-out Date</label>
+                                <input
+                                    type="date"
+                                    name="checkOutDate"
+                                    value={formData.checkOutDate}
+                                    onChange={handleChange}
+                                    required
+                                    min={formData.checkInDate || new Date().toISOString().split('T')[0]}
+                                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                                />
+                            </div>
+
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">Total Amount</label>
+                                <input
+                                    type="number"
+                                    name="totalAmount"
+                                    value={formData.totalAmount}
+                                    onChange={handleChange}
+                                    required
+                                    min="0"
+                                    step="0.01"
+                                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                                    placeholder="0.00"
+                                />
+                            </div>
+
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">Status</label>
+                                <select
+                                    name="status"
+                                    value={formData.status}
+                                    onChange={handleChange}
+                                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                                >
+                                    <option value="PENDING">Pending</option>
+                                    <option value="CONFIRMED">Confirmed</option>
+                                </select>
+                            </div>
+
+                            <div className="flex gap-3 pt-4">
+                                <button
+                                    type="submit"
+                                    className="flex-1 bg-indigo-600 text-white py-2 rounded-lg hover:bg-indigo-700 transition font-medium"
+                                >
+                                    Create Booking
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={() => setShowModal(false)}
+                                    className="flex-1 bg-gray-200 text-gray-700 py-2 rounded-lg hover:bg-gray-300 transition font-medium"
+                                >
+                                    Cancel
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            )}
         </div>
     );
 };
