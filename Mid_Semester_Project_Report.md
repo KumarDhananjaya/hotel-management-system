@@ -1,4 +1,4 @@
-# Mid-Semester Project Report
+# Project Report
 
 ## Hotel Booking and Management System Prototype
 
