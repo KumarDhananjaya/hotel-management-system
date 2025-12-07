@@ -2,7 +2,9 @@ package com.hms.service;
 
 import com.hms.model.Booking;
 import com.hms.model.Room;
+import com.hms.model.Guest;
 import com.hms.repository.BookingRepository;
+import com.hms.repository.GuestRepository;
 import com.hms.repository.RoomRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -18,6 +20,9 @@ public class BookingService {
     private RoomRepository roomRepository;
 
     @Autowired
+    private GuestRepository guestRepository;
+
+    @Autowired
     private EmailService emailService;
 
     public List<Booking> getAllBookings() {
@@ -31,6 +36,18 @@ public class BookingService {
 
         if (room.getStatus() != Room.RoomStatus.AVAILABLE) {
             throw new RuntimeException("Room is not available");
+        }
+
+        // Update Guest Email if provided
+        if (booking.getGuest() != null && booking.getGuest().getId() != null) {
+            Guest guest = guestRepository.findById(booking.getGuest().getId())
+                    .orElseThrow(() -> new RuntimeException("Guest not found"));
+
+            if (booking.getGuest().getEmail() != null && !booking.getGuest().getEmail().isEmpty()) {
+                guest.setEmail(booking.getGuest().getEmail());
+                guestRepository.save(guest);
+            }
+            booking.setGuest(guest);
         }
 
         // Update room status

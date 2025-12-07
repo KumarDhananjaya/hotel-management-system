@@ -11,6 +11,7 @@ const Bookings = () => {
     const [formData, setFormData] = useState({
         roomId: '',
         guestId: '',
+        email: '',
         checkInDate: '',
         checkOutDate: '',
         totalAmount: '',
@@ -52,7 +53,10 @@ const Bookings = () => {
         try {
             const bookingData = {
                 room: { id: parseInt(formData.roomId) },
-                guest: { id: parseInt(formData.guestId) },
+                guest: {
+                    id: parseInt(formData.guestId),
+                    email: formData.email
+                },
                 checkInDate: formData.checkInDate,
                 checkOutDate: formData.checkOutDate,
                 totalAmount: parseFloat(formData.totalAmount),
@@ -65,6 +69,7 @@ const Bookings = () => {
             setFormData({
                 roomId: '',
                 guestId: '',
+                email: '',
                 checkInDate: '',
                 checkOutDate: '',
                 totalAmount: '',
@@ -81,6 +86,16 @@ const Bookings = () => {
         setFormData({
             ...formData,
             [e.target.name]: e.target.value
+        });
+    };
+
+    const handleGuestChange = (e) => {
+        const guestId = e.target.value;
+        const selectedGuest = guests.find(g => g.id === parseInt(guestId));
+        setFormData({
+            ...formData,
+            guestId: guestId,
+            email: selectedGuest ? selectedGuest.email : ''
         });
     };
 
@@ -194,17 +209,30 @@ const Bookings = () => {
                                 <select
                                     name="guestId"
                                     value={formData.guestId}
-                                    onChange={handleChange}
+                                    onChange={handleGuestChange}
                                     required
                                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
                                 >
                                     <option value="">Choose a guest...</option>
                                     {guests.map(guest => (
                                         <option key={guest.id} value={guest.id}>
-                                            {guest.name} - {guest.email}
+                                            {guest.name}
                                         </option>
                                     ))}
                                 </select>
+                            </div>
+
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">Guest Email</label>
+                                <input
+                                    type="email"
+                                    name="email"
+                                    value={formData.email}
+                                    onChange={handleChange}
+                                    required
+                                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                                    placeholder="Enter guest email"
+                                />
                             </div>
 
                             <div>
