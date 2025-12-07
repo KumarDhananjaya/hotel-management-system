@@ -15,6 +15,7 @@ com/hms/model/Payment$PaymentStatus.class
 com/hms/model/Guest.class
 com/hms/controller/AnalyticsController.class
 com/hms/service/DashboardService.class
+com/hms/service/EmailService.class
 com/hms/repository/BookingRepository.class
 com/hms/repository/UserRepository.class
 com/hms/model/Payment$PaymentMethod.class

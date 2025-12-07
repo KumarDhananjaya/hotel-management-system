@@ -23,6 +23,7 @@
 /Users/kumardhananjaya/Desktop/Projects/HMSP/backend/src/main/java/com/hms/service/AuthService.java
 /Users/kumardhananjaya/Desktop/Projects/HMSP/backend/src/main/java/com/hms/service/BookingService.java
 /Users/kumardhananjaya/Desktop/Projects/HMSP/backend/src/main/java/com/hms/service/DashboardService.java
+/Users/kumardhananjaya/Desktop/Projects/HMSP/backend/src/main/java/com/hms/service/EmailService.java
 /Users/kumardhananjaya/Desktop/Projects/HMSP/backend/src/main/java/com/hms/service/GuestService.java
 /Users/kumardhananjaya/Desktop/Projects/HMSP/backend/src/main/java/com/hms/service/PaymentService.java
 /Users/kumardhananjaya/Desktop/Projects/HMSP/backend/src/main/java/com/hms/service/RoomService.java
