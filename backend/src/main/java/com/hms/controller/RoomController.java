@@ -26,6 +26,14 @@ public class RoomController {
         return roomService.getAllRooms();
     }
 
+    @GetMapping("/available")
+    public List<Room> getAvailableRooms(
+            @org.springframework.web.bind.annotation.RequestParam("checkIn") java.time.LocalDate checkIn,
+            @org.springframework.web.bind.annotation.RequestParam("checkOut") java.time.LocalDate checkOut,
+            @org.springframework.web.bind.annotation.RequestParam(value = "type", required = false) Room.RoomType type) {
+        return roomService.findAvailableRooms(checkIn, checkOut, type);
+    }
+
     @GetMapping("/{id}")
     public ResponseEntity<Room> getRoomById(@PathVariable Long id) {
         try {

@@ -30,7 +30,7 @@ public class User {
     }
 
     public enum Role {
-        ADMIN, STAFF
+        ADMIN, STAFF, MANAGER, RECEPTIONIST, HOUSEKEEPING
     }
 
     public User() {

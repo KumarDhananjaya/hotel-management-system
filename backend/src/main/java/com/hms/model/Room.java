@@ -24,12 +24,17 @@ public class Room {
 
     private String description;
 
+    // Enum for different room categories
     public enum RoomType {
-        SINGLE, DOUBLE, SUITE
+        SINGLE, DOUBLE, SUITE, DORMITORY
     }
 
+    // Enum for tracking the current status of a room
     public enum RoomStatus {
-        AVAILABLE, BOOKED, MAINTENANCE
+        AVAILABLE, // Room is ready for booking
+        BOOKED, // Room is currently occupied
+        MAINTENANCE, // Room is under repair
+        CLEANING // Room is being cleaned
     }
 
     public Room() {

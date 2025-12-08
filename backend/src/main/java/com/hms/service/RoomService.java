@@ -12,6 +12,9 @@ public class RoomService {
     @Autowired
     private RoomRepository roomRepository;
 
+    @Autowired
+    private com.hms.repository.BookingRepository bookingRepository;
+
     public List<Room> getAllRooms() {
         return roomRepository.findAll();
     }
@@ -39,5 +42,39 @@ public class RoomService {
 
     public void deleteRoom(Long id) {
         roomRepository.deleteById(id);
+    }
+
+    /**
+     * Finds available rooms for a given date range and optional room type.
+     * Checks if the room is currently available (status) and not booked during the
+     * requested dates.
+     *
+     * @param checkIn  Desired check-in date
+     * @param checkOut Desired check-out date
+     * @param type     Optional room type filter
+     * @return List of available rooms
+     */
+    public List<Room> findAvailableRooms(java.time.LocalDate checkIn, java.time.LocalDate checkOut,
+            Room.RoomType type) {
+        List<Room> allRooms = roomRepository.findAll();
+
+        return allRooms.stream()
+                .filter(room -> {
+                    // 1. Check if room status is AVAILABLE
+                    if (room.getStatus() != Room.RoomStatus.AVAILABLE) {
+                        return false;
+                    }
+
+                    // 2. Check if room type matches (if provided)
+                    if (type != null && room.getType() != type) {
+                        return false;
+                    }
+
+                    // 3. Check for booking conflicts
+                    List<com.hms.model.Booking> conflicts = bookingRepository.findBookingsInDateRange(room.getId(),
+                            checkIn, checkOut);
+                    return conflicts.isEmpty();
+                })
+                .collect(java.util.stream.Collectors.toList());
     }
 }

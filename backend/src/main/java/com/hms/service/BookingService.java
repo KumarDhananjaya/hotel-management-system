@@ -34,8 +34,11 @@ public class BookingService {
         Room room = roomRepository.findById(booking.getRoom().getId())
                 .orElseThrow(() -> new RuntimeException("Room not found"));
 
-        if (room.getStatus() != Room.RoomStatus.AVAILABLE) {
-            throw new RuntimeException("Room is not available");
+        // Check for overlaps using the repository method
+        List<Booking> conflicts = bookingRepository.findBookingsInDateRange(room.getId(), booking.getCheckInDate(),
+                booking.getCheckOutDate());
+        if (!conflicts.isEmpty()) {
+            throw new RuntimeException("Room is already booked for the selected dates");
         }
 
         // Update Guest Email if provided
@@ -50,9 +53,16 @@ public class BookingService {
             booking.setGuest(guest);
         }
 
-        // Update room status
-        room.setStatus(Room.RoomStatus.BOOKED);
-        roomRepository.save(room);
+        // Calculate total amount with dynamic pricing
+        java.math.BigDecimal totalAmount = calculateDynamicPrice(room, booking.getCheckInDate(),
+                booking.getCheckOutDate());
+        booking.setTotalAmount(totalAmount);
+
+        // Update room status ONLY if check-in is today
+        if (booking.getCheckInDate().equals(java.time.LocalDate.now())) {
+            room.setStatus(Room.RoomStatus.BOOKED);
+            roomRepository.save(room);
+        }
 
         booking.setStatus(Booking.BookingStatus.CONFIRMED);
         Booking savedBooking = bookingRepository.save(booking);
@@ -66,6 +76,42 @@ public class BookingService {
         return savedBooking;
     }
 
+    /**
+     * Calculates the total price based on dynamic seasonal rates.
+     * Logic:
+     * - Base price per night
+     * - +20% surcharge for Weekends (Friday, Saturday)
+     * 
+     * @param room     Room entity
+     * @param checkIn  Check-in date
+     * @param checkOut Check-out date
+     * @return Total calculated price
+     */
+    public java.math.BigDecimal calculateDynamicPrice(Room room, java.time.LocalDate checkIn,
+            java.time.LocalDate checkOut) {
+        java.math.BigDecimal total = java.math.BigDecimal.ZERO;
+        java.math.BigDecimal basePrice = room.getPrice();
+
+        java.time.LocalDate current = checkIn;
+        while (current.isBefore(checkOut)) {
+            java.math.BigDecimal dailyPrice = basePrice;
+
+            // Check for Weekend (Friday = 6, Saturday = 7 in DayOfWeek enum? No,
+            // Monday=1... Sunday=7)
+            // java.time.DayOfWeek: MONDAY(1) ... SUNDAY(7)
+            // Let's assume Weekend is Friday and Saturday nights
+            java.time.DayOfWeek dayOfWeek = current.getDayOfWeek();
+            if (dayOfWeek == java.time.DayOfWeek.FRIDAY || dayOfWeek == java.time.DayOfWeek.SATURDAY) {
+                dailyPrice = dailyPrice.multiply(new java.math.BigDecimal("1.20"));
+            }
+
+            total = total.add(dailyPrice);
+            current = current.plusDays(1);
+        }
+
+        return total;
+    }
+
     public void cancelBooking(Long id) {
         Booking booking = bookingRepository.findById(id).orElseThrow(() -> new RuntimeException("Booking not found"));
         booking.setStatus(Booking.BookingStatus.CANCELLED);
@@ -76,5 +122,19 @@ public class BookingService {
         roomRepository.save(room);
 
         bookingRepository.save(booking);
+    }
+
+    public Booking updateBooking(Long id, Booking bookingDetails) {
+        Booking booking = bookingRepository.findById(id).orElseThrow(() -> new RuntimeException("Booking not found"));
+        booking.setCheckInDate(bookingDetails.getCheckInDate());
+        booking.setCheckOutDate(bookingDetails.getCheckOutDate());
+        booking.setTotalAmount(bookingDetails.getTotalAmount());
+        booking.setStatus(bookingDetails.getStatus());
+        return bookingRepository.save(booking);
+    }
+
+    public void deleteBooking(Long id) {
+        Booking booking = bookingRepository.findById(id).orElseThrow(() -> new RuntimeException("Booking not found"));
+        bookingRepository.delete(booking);
     }
 }

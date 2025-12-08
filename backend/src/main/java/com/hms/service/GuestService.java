@@ -28,4 +28,9 @@ public class GuestService {
         guest.setAddress(guestDetails.getAddress());
         return guestRepository.save(guest);
     }
+
+    public void deleteGuest(Long id) {
+        Guest guest = guestRepository.findById(id).orElseThrow(() -> new RuntimeException("Guest not found"));
+        guestRepository.delete(guest);
+    }
 }

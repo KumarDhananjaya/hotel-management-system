@@ -29,6 +29,14 @@ public class SecurityConfig {
                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/api/auth/**").permitAll()
+                        .requestMatchers("/api/users/**").hasRole("ADMIN")
+                        .requestMatchers("/api/payments/**").hasAnyRole("ADMIN", "MANAGER", "RECEPTIONIST")
+                        .requestMatchers("/api/bookings/**").hasAnyRole("ADMIN", "MANAGER", "RECEPTIONIST")
+                        .requestMatchers("/api/guests/**").hasAnyRole("ADMIN", "MANAGER", "RECEPTIONIST")
+                        .requestMatchers("/api/housekeeping/**").hasAnyRole("ADMIN", "MANAGER", "HOUSEKEEPING")
+                        .requestMatchers("/api/inventory/**").hasAnyRole("ADMIN", "MANAGER", "HOUSEKEEPING")
+                        .requestMatchers("/api/rooms/**").authenticated() // All staff can view/update rooms (e.g.
+                                                                          // housekeeping)
                         .anyRequest().authenticated())
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authenticationProvider(authenticationProvider)

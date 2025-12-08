@@ -1,12 +1,18 @@
 import React, { useEffect, useState } from 'react';
 import { PaymentService, BookingService } from '../services/api';
-import { Plus, CreditCard, DollarSign, CheckCircle, Clock, X } from 'lucide-react';
+import { Plus, CreditCard, DollarSign, Clock, X, Search, Filter, Edit2, Trash2, Receipt } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
+import PaymentCheckoutModal from '../components/PaymentCheckoutModal';
 
 const Payments = () => {
     const [payments, setPayments] = useState([]);
     const [bookings, setBookings] = useState([]);
     const [loading, setLoading] = useState(true);
     const [showModal, setShowModal] = useState(false);
+    const [showCheckoutModal, setShowCheckoutModal] = useState(false);
+    const [selectedBookingForCheckout, setSelectedBookingForCheckout] = useState(null);
+    const [isEditing, setIsEditing] = useState(false);
+    const [currentPaymentId, setCurrentPaymentId] = useState(null);
     const [formData, setFormData] = useState({
         bookingId: '',
         amount: '',
@@ -21,7 +27,6 @@ const Payments = () => {
 
     const fetchPayments = async () => {
         try {
-            // Since there's no getAllPayments endpoint, we'll fetch by bookings
             const bookingsRes = await BookingService.getAllBookings();
             const allPayments = [];
 
@@ -45,11 +50,46 @@ const Payments = () => {
     const fetchBookings = async () => {
         try {
             const response = await BookingService.getAllBookings();
-            // Filter only confirmed bookings that might need payment
             setBookings(response.data.filter(b => b.status !== 'CANCELLED'));
         } catch (error) {
             console.error('Failed to fetch bookings', error);
         }
+    };
+
+    const handleEdit = (payment) => {
+        setFormData({
+            bookingId: payment.booking.id,
+            amount: payment.amount,
+            method: payment.method,
+            status: payment.status
+        });
+        setCurrentPaymentId(payment.id);
+        setIsEditing(true);
+        setShowModal(true);
+    };
+
+    const handleDelete = async (id) => {
+        if (window.confirm('Are you sure you want to delete this payment record?')) {
+            try {
+                await PaymentService.deletePayment(id);
+                fetchPayments();
+            } catch (error) {
+                console.error('Failed to delete payment', error);
+                alert('Failed to delete payment.');
+            }
+        }
+    };
+
+    const openAddModal = () => {
+        setFormData({
+            bookingId: '',
+            amount: '',
+            method: 'CARD',
+            status: 'PAID'
+        });
+        setIsEditing(false);
+        setCurrentPaymentId(null);
+        setShowModal(true);
     };
 
     const handleSubmit = async (e) => {
@@ -62,15 +102,13 @@ const Payments = () => {
                 status: formData.status
             };
 
-            await PaymentService.processPayment(paymentData);
-            alert('Payment processed successfully!');
+            if (isEditing) {
+                await PaymentService.updatePayment(currentPaymentId, paymentData);
+            } else {
+                await PaymentService.processPayment(paymentData);
+            }
+
             setShowModal(false);
-            setFormData({
-                bookingId: '',
-                amount: '',
-                method: 'CARD',
-                status: 'PAID'
-            });
             fetchPayments();
         } catch (error) {
             console.error('Failed to process payment', error);
@@ -85,7 +123,6 @@ const Payments = () => {
             [name]: value
         }));
 
-        // Auto-fill amount when booking is selected
         if (name === 'bookingId' && value) {
             const selectedBooking = bookings.find(b => b.id === parseInt(value));
             if (selectedBooking) {
@@ -99,111 +136,153 @@ const Payments = () => {
 
     const getStatusColor = (status) => {
         return status === 'PAID'
-            ? 'bg-green-100 text-green-800'
-            : 'bg-yellow-100 text-yellow-800';
+            ? 'bg-emerald-100 text-emerald-700'
+            : 'bg-amber-100 text-amber-700';
     };
 
     const getMethodIcon = (method) => {
         switch (method) {
-            case 'CARD':
-                return <CreditCard size={16} />;
-            case 'CASH':
-                return <DollarSign size={16} />;
-            case 'UPI':
-                return <DollarSign size={16} />;
-            default:
-                return <DollarSign size={16} />;
+            case 'CARD': return <CreditCard size={16} />;
+            case 'CASH': return <DollarSign size={16} />;
+            case 'UPI': return <DollarSign size={16} />;
+            default: return <DollarSign size={16} />;
         }
     };
 
-    if (loading) return <div className="text-center mt-10">Loading payments...</div>;
+    if (loading) {
+        return (
+            <div className="flex items-center justify-center h-64">
+                <motion.div
+                    animate={{ rotate: 360 }}
+                    transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+                    className="w-12 h-12 border-4 border-indigo-500 border-t-transparent rounded-full"
+                />
+            </div>
+        );
+    }
 
     return (
-        <div>
-            <div className="flex justify-between items-center mb-8">
-                <h1 className="text-3xl font-bold text-gray-800">Payments</h1>
-                <button
-                    onClick={() => setShowModal(true)}
-                    className="bg-indigo-600 text-white px-4 py-2 rounded-lg flex items-center gap-2 hover:bg-indigo-700 transition"
-                >
-                    <Plus size={20} /> Process Payment
-                </button>
+        <div className="space-y-8">
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                <div>
+                    <h1 className="text-3xl font-bold text-gray-900 tracking-tight">Payments</h1>
+                    <p className="text-gray-500 mt-1">Track revenue and transactions</p>
+                </div>
+                <div className="flex gap-3">
+                    <div className="relative">
+                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={20} />
+                        <input
+                            type="text"
+                            placeholder="Search payments..."
+                            className="pl-10 pr-4 py-2 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 w-full md:w-64"
+                        />
+                    </div>
+                    <button className="p-2 border border-gray-200 rounded-xl hover:bg-gray-50 text-gray-600">
+                        <Filter size={20} />
+                    </button>
+                    <button
+                        onClick={openAddModal}
+                        className="bg-indigo-600 text-white px-4 py-2 rounded-xl flex items-center gap-2 hover:bg-indigo-700 transition shadow-lg shadow-indigo-200 font-medium"
+                    >
+                        <Plus size={20} /> Process Payment
+                    </button>
+                </div>
             </div>
 
-            {/* Summary Cards */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-                <div className="bg-white p-6 rounded-lg shadow-md">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <motion.div
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.1 }}
+                    className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100"
+                >
                     <div className="flex items-center justify-between">
                         <div>
-                            <p className="text-gray-500 text-sm">Total Payments</p>
-                            <p className="text-2xl font-bold text-gray-800">{payments.length}</p>
+                            <p className="text-gray-500 text-sm font-medium">Total Transactions</p>
+                            <p className="text-3xl font-bold text-gray-900 mt-1">{payments.length}</p>
                         </div>
-                        <div className="bg-indigo-100 p-3 rounded-full">
+                        <div className="bg-indigo-50 p-3 rounded-xl">
                             <CreditCard className="text-indigo-600" size={24} />
                         </div>
                     </div>
-                </div>
+                </motion.div>
 
-                <div className="bg-white p-6 rounded-lg shadow-md">
+                <motion.div
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.2 }}
+                    className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100"
+                >
                     <div className="flex items-center justify-between">
                         <div>
-                            <p className="text-gray-500 text-sm">Total Revenue</p>
-                            <p className="text-2xl font-bold text-gray-800">
+                            <p className="text-gray-500 text-sm font-medium">Total Revenue</p>
+                            <p className="text-3xl font-bold text-gray-900 mt-1">
                                 ${payments.reduce((sum, p) => sum + (p.amount || 0), 0).toFixed(2)}
                             </p>
                         </div>
-                        <div className="bg-green-100 p-3 rounded-full">
-                            <DollarSign className="text-green-600" size={24} />
+                        <div className="bg-emerald-50 p-3 rounded-xl">
+                            <DollarSign className="text-emerald-600" size={24} />
                         </div>
                     </div>
-                </div>
+                </motion.div>
 
-                <div className="bg-white p-6 rounded-lg shadow-md">
+                <motion.div
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.3 }}
+                    className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100"
+                >
                     <div className="flex items-center justify-between">
                         <div>
-                            <p className="text-gray-500 text-sm">Pending Payments</p>
-                            <p className="text-2xl font-bold text-gray-800">
+                            <p className="text-gray-500 text-sm font-medium">Pending</p>
+                            <p className="text-3xl font-bold text-gray-900 mt-1">
                                 {payments.filter(p => p.status === 'PENDING').length}
                             </p>
                         </div>
-                        <div className="bg-yellow-100 p-3 rounded-full">
-                            <Clock className="text-yellow-600" size={24} />
+                        <div className="bg-amber-50 p-3 rounded-xl">
+                            <Clock className="text-amber-600" size={24} />
                         </div>
                     </div>
-                </div>
+                </motion.div>
             </div>
 
-            {/* Payments Table */}
-            <div className="bg-white rounded-lg shadow-md overflow-hidden">
-                <table className="min-w-full divide-y divide-gray-200">
-                    <thead className="bg-gray-50">
+            <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+                <table className="min-w-full divide-y divide-gray-100">
+                    <thead className="bg-gray-50/50">
                         <tr>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Payment ID</th>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Booking Details</th>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Amount</th>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Method</th>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                            <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Payment ID</th>
+                            <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Booking Details</th>
+                            <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Amount</th>
+                            <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Method</th>
+                            <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Date</th>
+                            <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Status</th>
+                            <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Actions</th>
                         </tr>
                     </thead>
-                    <tbody className="bg-white divide-y divide-gray-200">
+                    <tbody className="divide-y divide-gray-100">
                         {payments.length === 0 ? (
                             <tr>
-                                <td colSpan="6" className="px-6 py-8 text-center text-gray-500">
-                                    No payments found. Process a payment to get started.
+                                <td colSpan="7" className="px-6 py-8 text-center text-gray-500">
+                                    No payments found.
                                 </td>
                             </tr>
                         ) : (
-                            payments.map((payment) => (
-                                <tr key={payment.id} className="hover:bg-gray-50">
+                            payments.map((payment, index) => (
+                                <motion.tr
+                                    key={payment.id}
+                                    initial={{ opacity: 0, y: 10 }}
+                                    animate={{ opacity: 1, y: 0 }}
+                                    transition={{ delay: index * 0.05 }}
+                                    className="hover:bg-gray-50/50 transition-colors"
+                                >
                                     <td className="px-6 py-4 whitespace-nowrap">
                                         <div className="text-sm font-medium text-gray-900">#{payment.id}</div>
                                     </td>
                                     <td className="px-6 py-4 whitespace-nowrap">
-                                        <div className="text-sm text-gray-900">
+                                        <div className="text-sm font-medium text-gray-900">
                                             {payment.booking?.guest?.name || 'N/A'}
                                         </div>
-                                        <div className="text-sm text-gray-500">
+                                        <div className="text-xs text-gray-500">
                                             Room {payment.booking?.room?.roomNumber || 'N/A'}
                                         </div>
                                     </td>
@@ -222,108 +301,167 @@ const Payments = () => {
                                         {payment.paymentDate ? new Date(payment.paymentDate).toLocaleDateString() : 'N/A'}
                                     </td>
                                     <td className="px-6 py-4 whitespace-nowrap">
-                                        <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${getStatusColor(payment.status)}`}>
+                                        <span className={`px-2.5 py-0.5 inline-flex text-xs font-medium rounded-full ${getStatusColor(payment.status)}`}>
                                             {payment.status}
                                         </span>
                                     </td>
-                                </tr>
+                                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                                        <div className="flex gap-2">
+                                            <button
+                                                onClick={() => handleEdit(payment)}
+                                                className="p-2 text-gray-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-all"
+                                                title="Edit Payment"
+                                            >
+                                                <Edit2 size={18} />
+                                            </button>
+                                            <button
+                                                onClick={() => handleDelete(payment.id)}
+                                                className="p-2 text-gray-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-all"
+                                                title="Delete Payment"
+                                            >
+                                                <Trash2 size={18} />
+                                            </button>
+                                        </div>
+                                    </td>
+                                </motion.tr>
                             ))
                         )}
                     </tbody>
                 </table>
             </div>
 
-            {/* Process Payment Modal */}
-            {showModal && (
-                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-                    <div className="bg-white rounded-lg p-8 max-w-md w-full mx-4">
-                        <div className="flex justify-between items-center mb-6">
-                            <h2 className="text-2xl font-bold text-gray-800">Process Payment</h2>
-                            <button onClick={() => setShowModal(false)} className="text-gray-500 hover:text-gray-700">
-                                <X size={24} />
-                            </button>
-                        </div>
-
-                        <form onSubmit={handleSubmit} className="space-y-4">
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">Select Booking</label>
-                                <select
-                                    name="bookingId"
-                                    value={formData.bookingId}
-                                    onChange={handleChange}
-                                    required
-                                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                                >
-                                    <option value="">Choose a booking...</option>
-                                    {bookings.map(booking => (
-                                        <option key={booking.id} value={booking.id}>
-                                            Booking #{booking.id} - {booking.guest.name} - Room {booking.room.roomNumber} (${booking.totalAmount})
-                                        </option>
-                                    ))}
-                                </select>
-                            </div>
-
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">Amount</label>
-                                <input
-                                    type="number"
-                                    name="amount"
-                                    value={formData.amount}
-                                    onChange={handleChange}
-                                    required
-                                    min="0"
-                                    step="0.01"
-                                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                                    placeholder="0.00"
-                                />
-                            </div>
-
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">Payment Method</label>
-                                <select
-                                    name="method"
-                                    value={formData.method}
-                                    onChange={handleChange}
-                                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                                >
-                                    <option value="CARD">Credit/Debit Card</option>
-                                    <option value="CASH">Cash</option>
-                                    <option value="UPI">UPI</option>
-                                </select>
-                            </div>
-
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">Payment Status</label>
-                                <select
-                                    name="status"
-                                    value={formData.status}
-                                    onChange={handleChange}
-                                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                                >
-                                    <option value="PAID">Paid</option>
-                                    <option value="PENDING">Pending</option>
-                                </select>
-                            </div>
-
-                            <div className="flex gap-3 pt-4">
+            <AnimatePresence>
+                {showModal && (
+                    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+                        <motion.div
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            exit={{ opacity: 0 }}
+                            onClick={() => setShowModal(false)}
+                            className="absolute inset-0 bg-black/40 backdrop-blur-sm"
+                        />
+                        <motion.div
+                            initial={{ scale: 0.95, opacity: 0, y: 20 }}
+                            animate={{ scale: 1, opacity: 1, y: 0 }}
+                            exit={{ scale: 0.95, opacity: 0, y: 20 }}
+                            className="bg-white rounded-2xl shadow-2xl w-full max-w-md relative z-10 overflow-hidden"
+                        >
+                            <div className="p-6 border-b border-gray-100 flex justify-between items-center bg-gray-50">
+                                <h2 className="text-xl font-bold text-gray-800">
+                                    {isEditing ? 'Edit Payment' : 'Process Payment'}
+                                </h2>
                                 <button
-                                    type="submit"
-                                    className="flex-1 bg-indigo-600 text-white py-2 rounded-lg hover:bg-indigo-700 transition font-medium"
-                                >
-                                    Process Payment
-                                </button>
-                                <button
-                                    type="button"
                                     onClick={() => setShowModal(false)}
-                                    className="flex-1 bg-gray-200 text-gray-700 py-2 rounded-lg hover:bg-gray-300 transition font-medium"
+                                    className="p-2 hover:bg-gray-200 rounded-full transition-colors text-gray-500"
                                 >
-                                    Cancel
+                                    <X size={20} />
                                 </button>
                             </div>
-                        </form>
+
+                            <form onSubmit={handleSubmit} className="p-6 space-y-4">
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">Select Booking</label>
+                                    <select
+                                        name="bookingId"
+                                        value={formData.bookingId}
+                                        onChange={handleChange}
+                                        required
+                                        disabled={isEditing}
+                                        className="w-full px-4 py-2 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white disabled:bg-gray-50"
+                                    >
+                                        <option value="">Choose a booking...</option>
+                                        {bookings.map(booking => (
+                                            <option key={booking.id} value={booking.id}>
+                                                Booking #{booking.id} - {booking.guest.name} (${booking.totalAmount})
+                                            </option>
+                                        ))}
+                                    </select>
+                                </div>
+
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">Amount</label>
+                                    <div className="relative">
+                                        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500">$</span>
+                                        <input
+                                            type="number"
+                                            name="amount"
+                                            value={formData.amount}
+                                            onChange={handleChange}
+                                            required
+                                            min="0"
+                                            step="0.01"
+                                            className="w-full pl-8 pr-4 py-2 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                                            placeholder="0.00"
+                                        />
+                                    </div>
+                                </div>
+
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">Payment Method</label>
+                                    <select
+                                        name="method"
+                                        value={formData.method}
+                                        onChange={handleChange}
+                                        className="w-full px-4 py-2 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white"
+                                    >
+                                        <option value="CARD">Credit/Debit Card</option>
+                                        <option value="CASH">Cash</option>
+                                        <option value="UPI">UPI</option>
+                                    </select>
+                                </div>
+
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">Status</label>
+                                    <select
+                                        name="status"
+                                        value={formData.status}
+                                        onChange={handleChange}
+                                        className="w-full px-4 py-2 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white"
+                                    >
+                                        <option value="PAID">Paid</option>
+                                        <option value="PENDING">Pending</option>
+                                    </select>
+                                </div>
+
+                                <div className="flex gap-3 pt-4">
+                                    <button
+                                        type="button"
+                                        onClick={() => setShowModal(false)}
+                                        className="flex-1 px-4 py-2 border border-gray-200 text-gray-700 rounded-xl hover:bg-gray-50 transition font-medium"
+                                    >
+                                        Cancel
+                                    </button>
+                                    <button
+                                        type="submit"
+                                        className="flex-1 bg-indigo-600 text-white px-4 py-2 rounded-xl hover:bg-indigo-700 transition font-medium shadow-lg shadow-indigo-200"
+                                    >
+                                        {isEditing ? 'Save Changes' : 'Process Payment'}
+                                    </button>
+                                </div>
+                            </form>
+                        </motion.div>
                     </div>
-                </div>
-            )}
+                )}
+            </AnimatePresence>
+
+            {/* Payment Checkout Modal with Tax Breakdown */}
+            <AnimatePresence>
+                {showCheckoutModal && selectedBookingForCheckout && (
+                    <PaymentCheckoutModal
+                        booking={selectedBookingForCheckout}
+                        onSuccess={(payment) => {
+                            setShowCheckoutModal(false);
+                            setSelectedBookingForCheckout(null);
+                            fetchPayments();
+                            alert('Payment processed successfully!');
+                        }}
+                        onClose={() => {
+                            setShowCheckoutModal(false);
+                            setSelectedBookingForCheckout(null);
+                        }}
+                    />
+                )}
+            </AnimatePresence>
         </div>
     );
 };
