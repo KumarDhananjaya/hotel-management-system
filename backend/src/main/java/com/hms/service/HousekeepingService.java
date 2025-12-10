@@ -68,6 +68,29 @@ public class HousekeepingService {
         return taskRepository.save(task);
     }
 
+    public HousekeepingTask updateTask(Long id, HousekeepingTask taskDetails) {
+        HousekeepingTask task = taskRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Task not found"));
+
+        task.setScheduledDate(taskDetails.getScheduledDate());
+        task.setDescription(taskDetails.getDescription());
+
+        if (taskDetails.getAssignedStaff() != null) {
+            User staff = userRepository.findById(taskDetails.getAssignedStaff().getId())
+                    .orElseThrow(() -> new RuntimeException("Staff not found"));
+            task.setAssignedStaff(staff);
+        }
+
+        return taskRepository.save(task);
+    }
+
+    public void deleteTask(Long id) {
+        if (!taskRepository.existsById(id)) {
+            throw new RuntimeException("Task not found");
+        }
+        taskRepository.deleteById(id);
+    }
+
     // Maintenance Management
     public List<MaintenanceLog> getAllMaintenanceLogs() {
         return maintenanceRepository.findAllByOrderByReportedAtDesc();
@@ -96,5 +119,21 @@ public class HousekeepingService {
         roomRepository.save(room);
 
         return maintenanceRepository.save(log);
+    }
+
+    public MaintenanceLog updateMaintenanceLog(Long id, MaintenanceLog logDetails) {
+        MaintenanceLog log = maintenanceRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Log not found"));
+
+        log.setIssue(logDetails.getIssue());
+
+        return maintenanceRepository.save(log);
+    }
+
+    public void deleteMaintenanceLog(Long id) {
+        if (!maintenanceRepository.existsById(id)) {
+            throw new RuntimeException("Log not found");
+        }
+        maintenanceRepository.deleteById(id);
     }
 }

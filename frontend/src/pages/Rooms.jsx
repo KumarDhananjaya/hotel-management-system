@@ -83,8 +83,10 @@ const Rooms = () => {
 
             if (isEditing) {
                 await RoomService.updateRoom(currentRoomId, roomData);
+                alert('Room updated successfully!');
             } else {
                 await RoomService.addRoom(roomData);
+                alert('Room added successfully! Refreshing data...');
             }
 
             setShowModal(false);
@@ -257,7 +259,7 @@ const Rooms = () => {
                                             <option value="SINGLE">Single</option>
                                             <option value="DOUBLE">Double</option>
                                             <option value="SUITE">Suite</option>
-                                            <option value="DORMITORY">Dormitory</option>
+                                            {/* <option value="DORMITORY">Dormitory</option> */}
                                         </select>
                                     </div>
                                     <div>
@@ -290,7 +292,7 @@ const Rooms = () => {
                                         <option value="AVAILABLE">Available</option>
                                         <option value="BOOKED">Booked</option>
                                         <option value="MAINTENANCE">Maintenance</option>
-                                        <option value="CLEANING">Cleaning</option>
+                                        {/* <option value="CLEANING">Cleaning</option> */}
                                     </select>
                                 </div>
 

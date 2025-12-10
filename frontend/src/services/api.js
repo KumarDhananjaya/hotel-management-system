@@ -79,8 +79,12 @@ export const HousekeepingService = {
     getAllTasks: () => api.get('/housekeeping/tasks'),
     assignTask: (task) => api.post('/housekeeping/tasks', task),
     updateTaskStatus: (id, status) => api.put(`/housekeeping/tasks/${id}/status`, { status }),
+    updateTask: (id, task) => api.put(`/housekeeping/tasks/${id}`, task),
+    deleteTask: (id) => api.delete(`/housekeeping/tasks/${id}`),
     getAllMaintenanceLogs: () => api.get('/housekeeping/maintenance'),
     reportIssue: (log) => api.post('/housekeeping/maintenance', log),
+    updateMaintenanceLog: (id, log) => api.put(`/housekeeping/maintenance/${id}`, log),
+    deleteMaintenanceLog: (id) => api.delete(`/housekeeping/maintenance/${id}`),
     resolveIssue: (id) => api.put(`/housekeeping/maintenance/${id}/resolve`),
 };
 

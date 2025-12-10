@@ -11,6 +11,8 @@ const Housekeeping = () => {
     const [staff, setStaff] = useState([]);
     const [loading, setLoading] = useState(true);
     const [showModal, setShowModal] = useState(false);
+    const [isEditing, setIsEditing] = useState(false);
+    const [currentId, setCurrentId] = useState(null);
 
     // Form Data
     const [taskForm, setTaskForm] = useState({
@@ -50,31 +52,112 @@ const Housekeeping = () => {
     const handleAssignTask = async (e) => {
         e.preventDefault();
         try {
-            await HousekeepingService.assignTask({
+            const taskData = {
                 room: { id: parseInt(taskForm.roomId) },
                 assignedStaff: taskForm.staffId ? { id: parseInt(taskForm.staffId) } : null,
                 description: taskForm.description,
                 scheduledDate: taskForm.scheduledDate
-            });
+            };
+
+            if (isEditing) {
+                await HousekeepingService.updateTask(currentId, taskData);
+                alert('Task updated successfully');
+            } else {
+                await HousekeepingService.assignTask(taskData);
+                alert('Task assigned successfully');
+            }
+
             setShowModal(false);
             fetchData();
         } catch (error) {
-            alert('Failed to assign task');
+            alert('Failed to save task');
         }
     };
 
     const handleReportIssue = async (e) => {
         e.preventDefault();
         try {
-            await HousekeepingService.reportIssue({
+            const issueData = {
                 room: { id: parseInt(maintenanceForm.roomId) },
                 issue: maintenanceForm.issue
-            });
+            };
+
+            if (isEditing) {
+                await HousekeepingService.updateMaintenanceLog(currentId, issueData);
+                alert('Issue updated successfully');
+            } else {
+                await HousekeepingService.reportIssue(issueData);
+                alert('Issue reported successfully');
+            }
+
             setShowModal(false);
             fetchData();
         } catch (error) {
-            alert('Failed to report issue');
+            alert('Failed to save issue');
         }
+    };
+
+    const handleEditTask = (task) => {
+        setTaskForm({
+            roomId: task.room.id,
+            staffId: task.assignedStaff ? task.assignedStaff.id : '',
+            description: task.description,
+            scheduledDate: task.scheduledDate
+        });
+        setCurrentId(task.id);
+        setIsEditing(true);
+        setActiveTab('tasks');
+        setShowModal(true);
+    };
+
+    const handleDeleteTask = async (id) => {
+        if (window.confirm('Are you sure you want to delete this task?')) {
+            try {
+                await HousekeepingService.deleteTask(id);
+                fetchData();
+            } catch (error) {
+                alert('Failed to delete task');
+            }
+        }
+    };
+
+    const handleEditMaintenanceLog = (log) => {
+        setMaintenanceForm({
+            roomId: log.room.id,
+            issue: log.issue
+        });
+        setCurrentId(log.id);
+        setIsEditing(true);
+        setActiveTab('maintenance');
+        setShowModal(true);
+    };
+
+    const handleDeleteMaintenanceLog = async (id) => {
+        if (window.confirm('Are you sure you want to delete this log?')) {
+            try {
+                await HousekeepingService.deleteMaintenanceLog(id);
+                fetchData();
+            } catch (error) {
+                alert('Failed to delete log');
+            }
+        }
+    };
+
+    const openModal = (tab) => {
+        setActiveTab(tab);
+        setIsEditing(false);
+        setCurrentId(null);
+        setTaskForm({
+            roomId: '',
+            staffId: '',
+            description: '',
+            scheduledDate: new Date().toISOString().split('T')[0]
+        });
+        setMaintenanceForm({
+            roomId: '',
+            issue: ''
+        });
+        setShowModal(true);
     };
 
     const updateTaskStatus = async (id, status) => {
@@ -126,7 +209,7 @@ const Housekeeping = () => {
                 </div>
                 <div className="flex gap-3">
                     <button
-                        onClick={() => setShowModal(true)}
+                        onClick={() => openModal(activeTab)}
                         className="bg-indigo-600 text-white px-4 py-2 rounded-xl flex items-center gap-2 hover:bg-indigo-700 transition shadow-lg shadow-indigo-200 font-medium"
                     >
                         <Plus size={20} />
@@ -216,6 +299,18 @@ const Housekeeping = () => {
                                                 >
                                                     Complete
                                                 </button>
+                                                <button
+                                                    onClick={() => handleEditTask(task)}
+                                                    className="text-indigo-600 hover:text-indigo-800 text-xs border border-indigo-200 px-2 py-1 rounded-lg hover:bg-indigo-50"
+                                                >
+                                                    Edit
+                                                </button>
+                                                <button
+                                                    onClick={() => handleDeleteTask(task.id)}
+                                                    className="text-rose-600 hover:text-rose-800 text-xs border border-rose-200 px-2 py-1 rounded-lg hover:bg-rose-50"
+                                                >
+                                                    Delete
+                                                </button>
                                             </div>
                                         )}
                                     </td>
@@ -265,14 +360,28 @@ const Housekeeping = () => {
                                         </span>
                                     </td>
                                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                                        {log.status !== 'RESOLVED' && (
+                                        <div className="flex gap-2">
+                                            {log.status !== 'RESOLVED' && (
+                                                <button
+                                                    onClick={() => resolveIssue(log.id)}
+                                                    className="text-emerald-600 hover:text-emerald-800 text-xs border border-emerald-200 px-2 py-1 rounded-lg hover:bg-emerald-50"
+                                                >
+                                                    Mark Resolved
+                                                </button>
+                                            )}
                                             <button
-                                                onClick={() => resolveIssue(log.id)}
-                                                className="text-emerald-600 hover:text-emerald-800 text-xs border border-emerald-200 px-2 py-1 rounded-lg hover:bg-emerald-50"
+                                                onClick={() => handleEditMaintenanceLog(log)}
+                                                className="text-indigo-600 hover:text-indigo-800 text-xs border border-indigo-200 px-2 py-1 rounded-lg hover:bg-indigo-50"
                                             >
-                                                Mark Resolved
+                                                Edit
                                             </button>
-                                        )}
+                                            <button
+                                                onClick={() => handleDeleteMaintenanceLog(log.id)}
+                                                className="text-rose-600 hover:text-rose-800 text-xs border border-rose-200 px-2 py-1 rounded-lg hover:bg-rose-50"
+                                            >
+                                                Delete
+                                            </button>
+                                        </div>
                                     </td>
                                 </motion.tr>
                             ))}
@@ -299,7 +408,10 @@ const Housekeeping = () => {
                         >
                             <div className="p-6 border-b border-gray-100 bg-gray-50">
                                 <h2 className="text-xl font-bold text-gray-800">
-                                    {activeTab === 'tasks' ? 'Assign Cleaning Task' : 'Report Maintenance Issue'}
+                                    {isEditing
+                                        ? (activeTab === 'tasks' ? 'Edit Cleaning Task' : 'Edit Maintenance Issue')
+                                        : (activeTab === 'tasks' ? 'Assign Cleaning Task' : 'Report Maintenance Issue')
+                                    }
                                 </h2>
                             </div>
 
@@ -387,7 +499,7 @@ const Housekeeping = () => {
                                         type="submit"
                                         className="flex-1 bg-indigo-600 text-white px-4 py-2 rounded-xl hover:bg-indigo-700 transition font-medium shadow-lg shadow-indigo-200"
                                     >
-                                        {activeTab === 'tasks' ? 'Assign Task' : 'Report Issue'}
+                                        {isEditing ? 'Update' : (activeTab === 'tasks' ? 'Assign Task' : 'Report Issue')}
                                     </button>
                                 </div>
                             </form>

@@ -17,6 +17,19 @@ public class EnhancedPaymentController {
     private EnhancedPaymentService paymentService;
 
     /**
+     * Create a simple payment (without tax calculation)
+     */
+    @PostMapping
+    public ResponseEntity<?> createPayment(@RequestBody Payment payment) {
+        try {
+            Payment createdPayment = paymentService.createPayment(payment);
+            return ResponseEntity.ok(createdPayment);
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        }
+    }
+
+    /**
      * Process payment with tax calculation
      */
     @PostMapping("/process")
@@ -27,9 +40,10 @@ public class EnhancedPaymentController {
             String stateCode = (String) request.get("stateCode");
             String county = (String) request.get("county");
             String city = (String) request.get("city");
+            String paymentMethod = (String) request.get("paymentMethod");
 
             Payment payment = paymentService.processPaymentWithTaxes(
-                    bookingId, promoCode, stateCode, county, city);
+                    bookingId, promoCode, stateCode, county, city, paymentMethod);
 
             return ResponseEntity.ok(payment);
         } catch (Exception e) {

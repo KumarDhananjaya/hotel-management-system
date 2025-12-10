@@ -64,4 +64,42 @@ public class HousekeepingController {
             return ResponseEntity.badRequest().body(e.getMessage());
         }
     }
+
+    @PutMapping("/tasks/{id}")
+    public ResponseEntity<?> updateTask(@PathVariable Long id, @RequestBody HousekeepingTask task) {
+        try {
+            return ResponseEntity.ok(housekeepingService.updateTask(id, task));
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
+    }
+
+    @DeleteMapping("/tasks/{id}")
+    public ResponseEntity<?> deleteTask(@PathVariable Long id) {
+        try {
+            housekeepingService.deleteTask(id);
+            return ResponseEntity.ok().build();
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
+    }
+
+    @PutMapping("/maintenance/{id}")
+    public ResponseEntity<?> updateMaintenanceLog(@PathVariable Long id, @RequestBody MaintenanceLog log) {
+        try {
+            return ResponseEntity.ok(housekeepingService.updateMaintenanceLog(id, log));
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
+    }
+
+    @DeleteMapping("/maintenance/{id}")
+    public ResponseEntity<?> deleteMaintenanceLog(@PathVariable Long id) {
+        try {
+            housekeepingService.deleteMaintenanceLog(id);
+            return ResponseEntity.ok().build();
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
+    }
 }

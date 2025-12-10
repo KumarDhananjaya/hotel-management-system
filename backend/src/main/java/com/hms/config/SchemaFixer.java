@@ -22,7 +22,28 @@ public class SchemaFixer implements CommandLineRunner {
             jdbcTemplate.execute("ALTER TABLE users DROP CONSTRAINT IF EXISTS users_role_check");
             System.out.println("Successfully dropped users_role_check constraint.");
         } catch (Exception e) {
-            System.out.println("Failed to drop constraint (might not exist or other error): " + e.getMessage());
+            System.out.println(
+                    "Failed to drop users_role_check constraint (might not exist or other error): " + e.getMessage());
+        }
+
+        try {
+            // Drop the constraint that restricts room status values.
+            // The old constraint doesn't include CLEANING status.
+            jdbcTemplate.execute("ALTER TABLE rooms DROP CONSTRAINT IF EXISTS rooms_status_check");
+            System.out.println("Successfully dropped rooms_status_check constraint.");
+        } catch (Exception e) {
+            System.out.println(
+                    "Failed to drop rooms_status_check constraint (might not exist or other error): " + e.getMessage());
+        }
+
+        try {
+            // Drop the constraint that restricts room type values.
+            // The old constraint might not include DORMITORY.
+            jdbcTemplate.execute("ALTER TABLE rooms DROP CONSTRAINT IF EXISTS rooms_type_check");
+            System.out.println("Successfully dropped rooms_type_check constraint.");
+        } catch (Exception e) {
+            System.out.println(
+                    "Failed to drop rooms_type_check constraint (might not exist or other error): " + e.getMessage());
         }
     }
 }
