@@ -1,6 +1,6 @@
 # Project Report
 
-## Hotel Booking and Management System Prototype
+## Hospify – Hotel Operations Management
 
 ---
 
