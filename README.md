@@ -559,7 +559,7 @@ status ENUM('PAID', 'PENDING')
 
 ## 15. Summary
 
-This mid-semester project has successfully evolved from a basic console-based prototype to a **fully functional, production-ready web application**. The Hotel Management System demonstrates:
+This project has successfully evolved from a basic console-based prototype to a **fully functional, production-ready web application**. The Hotel Management System demonstrates:
 
 ### **Achievements**
 ✅ Complete full-stack implementation (Spring Boot + React)  
@@ -572,7 +572,7 @@ This mid-semester project has successfully evolved from a basic console-based pr
 ✅ Professional code organization following MVC pattern
 
 ### **Beyond Original Plan**
-The project has exceeded the initial mid-semester goals by:
+The project has exceeded the initial goals by:
 - ✅ Completing database integration (planned for second half)
 - ✅ Implementing full React frontend (planned for second half)
 - ✅ Adding JWT authentication (planned for second half)
@@ -606,6 +606,6 @@ The Hotel Management System project has been a comprehensive learning experience
 - **Security:** JWT, RBAC, Password Hashing
 - **Professional Practices:** Git, Documentation, Code Quality
 
-The project is well-positioned for the final semester presentation and can serve as a strong portfolio piece demonstrating real-world software engineering skills.
+The project is well-positioned for the final presentation and can serve as a strong portfolio piece demonstrating real-world software engineering skills.
 
 ---
